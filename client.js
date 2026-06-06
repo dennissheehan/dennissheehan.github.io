@@ -67,7 +67,7 @@ window.TrelloPowerUp.initialize({
       const constructedUrl = `${baseUrl}&cardId=${cardID}&boardId=${boardID}&idShort=${shortID}&username=${username}&cardName=${cardName}`;
 
       return {
-        title: "Time Tracking",
+        title: "Time Tracking NEW VERSION 6/6/2026",
         icon: GRAY_ICON,
         content: {
           type: 'iframe',
