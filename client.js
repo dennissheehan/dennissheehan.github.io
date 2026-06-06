@@ -1,80 +1,100 @@
-// Power-Up client.js version 1.3 - stable with truncation + safe Promises
+// Power-Up client.js version 1.4
+// Removes sessionStorage to avoid intermittent blank / Untitled launches
 
-const GRAY_ICON = 'https://a.trellocdn.com/prgb/dist/images/directory/icons/customIcon.87d05cbf7f7f7d4965e8.png';
+const GRAY_ICON = 'https://a.trellocdn.com/prgb/dist/images/directory/icons/customIcon.87d05cbf7f7d4965e8.png';
 
-// Safely get full card details
-function getCardName(t) {
-  return t.card("all").then((data) => {
-    sessionStorage.setItem("storedCardID", encodeURI(data.id));
-    sessionStorage.setItem("storedCardName", encodeURIComponent(data.name));
-    sessionStorage.setItem("storedShortID", encodeURI(data.shortLink));
-    return true; // Return something to satisfy Promise.all
-  });
+const POWERAPP_BASE_URL =
+  'https://apps.powerapps.com/play/c62e6a59-12d2-432c-ae16-46ad74bc1157?tenantId=4e9dbbfb-394a-4583-8810-53f81f819e3b';
+
+function truncateText(value, maxLength) {
+  if (!value) return '';
+  return value.length > maxLength ? value.substring(0, maxLength - 3) + '...' : value;
 }
 
-// Get board ID
-function getBoardID(t) {
-  return t.board("id").then((data) => {
-    sessionStorage.setItem("storedBoardID", encodeURI(data.id));
-    return true;
-  });
+function hasValue(value) {
+  return value !== undefined && value !== null && String(value).trim() !== '';
 }
 
-// Get Trello username
-function getMember(t) {
-  return t.member("username").then((data) => {
-    sessionStorage.setItem("storedMemberUsername", encodeURI(data.username));
-    return true;
-  });
-}
-
-// Initialize Power-Up
 window.TrelloPowerUp.initialize({
   'card-back-section': function (t, options) {
     return Promise.all([
-      getCardName(t),
-      getBoardID(t),
-      getMember(t)
-    ]).then(() => {
-      // Read and validate parameters
-      const cardID = sessionStorage.getItem("storedCardID") || "";
-      const boardID = sessionStorage.getItem("storedBoardID") || "";
-      const shortID = sessionStorage.getItem("storedShortID") || "";
-      const username = sessionStorage.getItem("storedMemberUsername") || "";
+      t.card('id', 'name', 'shortLink'),
+      t.board('id'),
+      t.member('username')
+    ])
+      .then(function ([card, board, member]) {
+        const cardIDRaw = card?.id || '';
+        const boardIDRaw = board?.id || '';
+        const shortIDRaw = card?.shortLink || '';
+        const usernameRaw = member?.username || '';
+        const cardNameRaw = truncateText(card?.name || '', 100);
 
-      let rawCardName = sessionStorage.getItem("storedCardName") || "Untitled";
-      console.log("⚠️ Raw storedCardName:", rawCardName);
+        console.log('✅ PowerUp debug params:', {
+          cardID: cardIDRaw,
+          boardID: boardIDRaw,
+          shortID: shortIDRaw,
+          username: usernameRaw,
+          cardName: cardNameRaw
+        });
 
-      let cardName = decodeURIComponent(rawCardName);
+        const hasValidContext =
+          hasValue(cardIDRaw) &&
+          hasValue(boardIDRaw) &&
+          hasValue(shortIDRaw) &&
+          hasValue(usernameRaw) &&
+          hasValue(cardNameRaw) &&
+          cardNameRaw !== 'Untitled';
 
-      // Truncate if needed
-      if (cardName.length > 100) {
-        cardName = cardName.substring(0, 97) + "...";
-      }
+        if (!hasValidContext) {
+          console.warn('⚠️ Missing Trello context. PowerApps not loaded.', {
+            cardID: cardIDRaw,
+            boardID: boardIDRaw,
+            shortID: shortIDRaw,
+            username: usernameRaw,
+            cardName: cardNameRaw
+          });
 
-      cardName = encodeURIComponent(cardName);
-
-      // Clear session for safety
-      sessionStorage.clear();
-
-      // Debug log
-      console.log("✅ PowerUp debug params:", {
-        cardID, boardID, shortID, username, cardName: decodeURIComponent(cardName)
-      });
-
-      // Construct PowerApps link
-      const baseUrl = "https://apps.powerapps.com/play/c62e6a59-12d2-432c-ae16-46ad74bc1157?tenantId=4e9dbbfb-394a-4583-8810-53f81f819e3b";
-      const constructedUrl = `${baseUrl}&cardId=${cardID}&boardId=${boardID}&idShort=${shortID}&username=${username}&cardName=${cardName}`;
-
-      return {
-        title: "Time Tracking NEW VERSION 6/6/2026",
-        icon: GRAY_ICON,
-        content: {
-          type: 'iframe',
-          url: t.signUrl(constructedUrl),
-          height: 500
+          return {
+            title: 'Time Tracking',
+            icon: GRAY_ICON,
+            content: {
+              type: 'iframe',
+              url: t.signUrl('about:blank'),
+              height: 100
+            }
+          };
         }
-      };
-    });
+
+        const constructedUrl =
+          POWERAPP_BASE_URL +
+          '&cardId=' + encodeURIComponent(cardIDRaw) +
+          '&boardId=' + encodeURIComponent(boardIDRaw) +
+          '&idShort=' + encodeURIComponent(shortIDRaw) +
+          '&username=' + encodeURIComponent(usernameRaw) +
+          '&cardName=' + encodeURIComponent(cardNameRaw);
+
+        return {
+          title: 'Time Tracking NEW VERSION 6/6/2026',
+          icon: GRAY_ICON,
+          content: {
+            type: 'iframe',
+            url: t.signUrl(constructedUrl),
+            height: 500
+          }
+        };
+      })
+      .catch(function (error) {
+        console.error('❌ Error loading Time Tracking:', error);
+
+        return {
+          title: 'Time Tracking',
+          icon: GRAY_ICON,
+          content: {
+            type: 'iframe',
+            url: t.signUrl('about:blank'),
+            height: 100
+          }
+        };
+      });
   }
 });
