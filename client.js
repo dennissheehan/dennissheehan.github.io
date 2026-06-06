@@ -29,7 +29,7 @@ window.TrelloPowerUp.initialize({
         const usernameRaw = member?.username || '';
         const cardNameRaw = truncateText(card?.name || '', 100);
 
-        console.log('✅ PowerUp debug params:', {
+        console.log('✅ PowerUp debug params V2:', {
           cardID: cardIDRaw,
           boardID: boardIDRaw,
           shortID: shortIDRaw,
