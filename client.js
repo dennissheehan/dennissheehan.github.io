@@ -74,7 +74,7 @@ window.TrelloPowerUp.initialize({
           '&cardName=' + encodeURIComponent(cardNameRaw);
 
         return {
-          title: 'Time Tracking NEW VERSION 6/6/2026',
+          title: 'Time Tracking NEW VERSION v2 6/6/2026',
           icon: GRAY_ICON,
           content: {
             type: 'iframe',
